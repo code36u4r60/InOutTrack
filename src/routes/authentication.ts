@@ -7,6 +7,7 @@ export async function authenticationRoutes(app: FastifyInstance) {
 
 
     const toHash = (text: string): string => crypto.createHash('sha1').update(text).digest('hex')
+    
 
     app.post('/register', async (request, reply) => {
 
@@ -49,7 +50,6 @@ export async function authenticationRoutes(app: FastifyInstance) {
             reply.status(201).send({ message: 'User created', user: user_created[0] })
 
         } catch (error) {
-            console.log(error)
             reply.status(400).send({ error: error })
             return
         }
@@ -57,63 +57,62 @@ export async function authenticationRoutes(app: FastifyInstance) {
     }
     )
 
-
-
-
-    // } catch (error) {
-    //     console.log(error)
-    // }
-
-    // console.log({ name, username, email, password })
-
-    // await knex('user').insert({
-    //     id: crypto.randomUUID(),
-    //     name,
-    //     username,
-    //     email,
-    //     password: crypto.createHash('sha1').update(password).digest('hex')
-    // })
-
-    // reply.status(201).send({ message: 'User created' })
-
-
     app.post('/login', async (request, reply) => {
         const bodySchema = z.object({
-            username: z.string(),
+            username: z.string().min(3),
             password: z.string().min(8).regex(/[A-Z]/, { message: 'At least one uppercase letter' })
                 .regex(/[a-z]/, { message: 'At least one lowercase letter' })
                 .regex(/\d/, { message: 'At least one digit' })
         })
 
+        try {
+            const { username, password } = bodySchema.parse(request.body)
+            
+            const user = await knex('user')
+            .where('username', username).first()
 
-        const { username, password } = bodySchema.parse(request.body)
+            if (!user) {
+                reply.status(401).send({ error: 'Invalid credentials' })
+                return
+            }
+        
+            const authentication = await knex('authentication').where('user_id', toHash(user.id)).first()
+            
+            if (!authentication) {
+                reply.status(401).send({ error: 'Invalid credentials' })
+                return
+            }
 
-        const user = await knex('user')
-            .where('name', username).first()
+            if (authentication.token !== toHash(password)) {
+                reply.status(401).send({ error: 'Invalid credentials' })
+                return
+            }
 
-        if (!user) {
-            reply.status(401).send({ error: 'Invalid credentials' })
+            let sessionId = request.cookies.sessionId
+
+
+            if (!sessionId) {
+                sessionId = crypto.randomUUID()
+                reply.cookie('InOutTrackSessionId', sessionId, {
+                    path: '/',
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    maxAge: 60 * 60 * 24 * 7, // 7 days
+                })
+            }
+
+            await knex('session').insert({
+                id: crypto.randomUUID(),
+                user_id: user.id,
+                token: sessionId,
+            })
+    
+            reply.status(201).send({ message: 'Logged in' })
+
+        } catch (error) {
+            reply.status(400).send({ error: error })
             return
         }
-
-        let sessionId = request.cookies.sessionId
-
-
-        if (!sessionId) {
-            sessionId = crypto.randomUUID()
-            reply.cookie('sessionId', sessionId, {
-                path: '/',
-                httpOnly: true,
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 7 days
-            })
-        }
-
-        await knex('sessions').insert({
-            user_id: user.id,
-            token: sessionId,
-        })
-
-        reply.status(201).send({ message: 'Logged in' })
+    
     })
 }
