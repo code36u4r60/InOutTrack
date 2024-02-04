@@ -97,7 +97,7 @@ export async function authenticationRoutes(app: FastifyInstance) {
                     path: '/',
                     httpOnly: true,
                     sameSite: 'lax',
-                    maxAge: 60 * 60 * 24 * 7, // 7 days
+                    maxAge: 60 * 60 * 24 * 1, // 1 days
                 })
             }
 
