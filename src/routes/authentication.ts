@@ -7,7 +7,7 @@ export async function authenticationRoutes(app: FastifyInstance) {
 
 
     const toHash = (text: string): string => crypto.createHash('sha1').update(text).digest('hex')
-    
+
 
     app.post('/register', async (request, reply) => {
 
@@ -57,6 +57,32 @@ export async function authenticationRoutes(app: FastifyInstance) {
     }
     )
 
+    app.delete('/register', async (request, reply) => {
+        let sessionId = request.cookies.InOutTrackSessionId
+
+        if (!sessionId) {
+            reply.status(401).send({ error: 'Not logged in' })
+            return
+        }
+
+        const session = await knex('session').where('token', sessionId).first()
+
+        if (!session) {
+            reply.status(401).send({ error: 'Not logged in' })
+            return
+        }
+
+        await knex('authentication').where('user_id', toHash(session.user_id)).del()
+        await knex('session').where('user_id', session.user_id).del()
+        await knex('user').where('id', session.user_id).del()
+
+        reply.status(200).send({ message: 'User deleted' })
+
+    })
+
+
+
+
     app.post('/login', async (request, reply) => {
         const bodySchema = z.object({
             username: z.string().min(3),
@@ -67,17 +93,17 @@ export async function authenticationRoutes(app: FastifyInstance) {
 
         try {
             const { username, password } = bodySchema.parse(request.body)
-            
+
             const user = await knex('user')
-            .where('username', username).first()
+                .where('username', username).first()
 
             if (!user) {
                 reply.status(401).send({ error: 'Invalid credentials' })
                 return
             }
-        
+
             const authentication = await knex('authentication').where('user_id', toHash(user.id)).first()
-            
+
             if (!authentication) {
                 reply.status(401).send({ error: 'Invalid credentials' })
                 return
@@ -88,31 +114,38 @@ export async function authenticationRoutes(app: FastifyInstance) {
                 return
             }
 
-            let sessionId = request.cookies.sessionId
+            let sessionId = request.cookies.InOutTrackSessionId
 
 
-            if (!sessionId) {
-                sessionId = crypto.randomUUID()
-                reply.cookie('InOutTrackSessionId', sessionId, {
-                    path: '/',
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    maxAge: 60 * 60 * 24 * 1, // 1 days
-                })
+
+            if (sessionId) {
+                reply.clearCookie('InOutTrackSessionId')
             }
+
+
+            sessionId = crypto.randomUUID()
+            reply.cookie('InOutTrackSessionId', sessionId, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 1, // 1 days
+            })
+
 
             await knex('session').insert({
                 id: crypto.randomUUID(),
                 user_id: user.id,
                 token: sessionId,
             })
-    
+
             reply.status(201).send({ message: 'Logged in' })
 
         } catch (error) {
             reply.status(400).send({ error: error })
             return
         }
-    
+
     })
+
+
 }
