@@ -47,7 +47,12 @@ export async function authenticationRoutes(app: FastifyInstance) {
                 token: toHash(password),
             })
 
-            reply.status(201).send({ message: 'User created', user: user_created[0] })
+            reply.status(201).send(
+                { 
+                    message: 'User created', 
+                    user: user_created[0] 
+                }
+            )
 
         } catch (error) {
             reply.status(400).send({ error: error })
@@ -81,7 +86,6 @@ export async function authenticationRoutes(app: FastifyInstance) {
     })
 
 
-
     app.post('/login', async (request, reply) => {
         const bodySchema = z.object({
             username: z.string().min(3),
@@ -93,8 +97,7 @@ export async function authenticationRoutes(app: FastifyInstance) {
         try {
             const { username, password } = bodySchema.parse(request.body)
 
-            const user = await knex('user')
-                .where('username', username).first()
+            const user = await knex('user').where('username', username).first()
 
             if (!user) {
                 reply.status(401).send({ error: 'Invalid credentials' })
@@ -113,31 +116,20 @@ export async function authenticationRoutes(app: FastifyInstance) {
                 return
             }
 
-            let sessionId = request.cookies.InOutTrackSessionId
-
-
-
-            if (sessionId) {
-                reply.clearCookie('InOutTrackSessionId')
-            }
-
-
-            sessionId = crypto.randomUUID()
-            reply.cookie('InOutTrackSessionId', sessionId, {
-                path: '/',
-                httpOnly: true,
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 1 days
-            })
-
-
+            const sessionId = crypto.randomUUID()
             await knex('session').insert({
                 id: crypto.randomUUID(),
                 user_id: user.id,
                 token: sessionId,
             })
 
-            reply.status(201).send({ message: 'Logged in' })
+            const token = app.jwt.sign({ user: user.id, session: sessionId})
+
+            reply.status(200).send(
+                { message: 'Logged in',
+                user: user,
+                sessionId: token
+            })
 
         } catch (error) {
             reply.status(400).send({ error: error })
