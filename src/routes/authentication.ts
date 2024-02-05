@@ -82,7 +82,6 @@ export async function authenticationRoutes(app: FastifyInstance) {
 
 
 
-
     app.post('/login', async (request, reply) => {
         const bodySchema = z.object({
             username: z.string().min(3),
@@ -128,7 +127,7 @@ export async function authenticationRoutes(app: FastifyInstance) {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 1, // 1 days
+                maxAge: 60 * 60 * 24 * 7, // 1 days
             })
 
 
