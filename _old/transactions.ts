@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify"
 import { z } from "zod"
-import { knex } from "../database"
-import { checkSessionIdExists } from "../middleware/check-session-id-exists"
+import { knex } from "../src/database"
+import { checkSessionIdExists } from "../src/middleware/check-session-id-exists"
 
 export async function transactionsRoutes(app: FastifyInstance) {
 
