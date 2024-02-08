@@ -11,10 +11,9 @@ import jwt from "@fastify/jwt"
 
 export const app = fastify();
 
-app.register(cors, { 
-    origin: "http://localhost:3333",
-    credentials: true
-})
+app.register(cors, {
+    hook: 'preHandler',
+ })
 
 
 app.addHook('preHandler', async (request, reply) => { console.log(`[${request.method}] ${request.url}`) })
