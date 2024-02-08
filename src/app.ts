@@ -11,14 +11,14 @@ import { statementsRoutes } from "./routes/statements";
 
 export const app = fastify();
 
-app.register(cors, {
-    hook: 'preHandler',
- })
+
 
 
 app.addHook('preHandler', async (request, reply) => { console.log(`[${request.method}] ${request.url}`) })
 
-
+app.register(cors, {
+    hook: 'preHandler',
+ })
 app.register(jwt, {secret: '65ffda0134ae55ef5e8fe1e2bc959c3f'})
 app.register(cookie)
 

@@ -18,12 +18,21 @@ export async function statementsRoutes(app: FastifyInstance) {
         }
       })
 
-    app.get('/',
-        {
-            
-        },
+    app.get('/:start:end',
         async (request, reply) => {
-            reply.send(request.user)
+          
+          
+          const paramsSchema = z.object({
+            start: z.date(),
+            end: z.date(),
         })
 
-}
+        const { start, end } = paramsSchema.parse(request.params)
+
+      
+
+            reply.send({start, end})
+        })
+
+      }
+        
