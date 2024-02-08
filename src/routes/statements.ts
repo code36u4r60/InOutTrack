@@ -27,6 +27,9 @@ export async function statementsRoutes(app: FastifyInstance) {
 
         try {
           const { start, end } = paramsSchema.parse(request.params)
+
+
+          reply.send({ start, end })
         }     
         catch (error) {
           reply.status(400).send({ error: error })
