@@ -21,15 +21,15 @@ export async function statementsRoutes(app: FastifyInstance) {
     app.get('/:start:end',
         async (request, reply) => {
           const paramsSchema = z.object({
-            start: z.coerce.date(),
-            end: z.coerce.date(),
+            start: z.date(),
+            end: z.date(),
         })
 
         try {
-          const { start, end } = paramsSchema.parse(request.params)
+          const parse = paramsSchema.safeParse(request.params)
 
 
-          reply.send({ start, end })
+          reply.send({ parse})
         }     
         catch (error) {
           reply.status(400).send({ error: error })
